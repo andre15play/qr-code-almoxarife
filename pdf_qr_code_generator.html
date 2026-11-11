@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF para QR Code Generator - Versão Local</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Custom scrollbar for history */
+        .history-scroll::-webkit-scrollbar { width: 6px; }
+        .history-scroll::-webkit-scrollbar-track { background: transparent; }
+        .history-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .history-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 shadow-sm z-10">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 12h10"/><path d="M7 17h10"/></svg>
+            </div>
+            <h1 class="text-xl font-bold text-slate-800">QR Code <span class="text-indigo-600">PDF</span></h1>
+        </div>
+        <div class="text-sm font-medium text-emerald-600 flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            Modo Offline (Local)
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- Left Panel: Controls -->
+        <div class="w-full lg:w-1/3 bg-white border-r border-slate-200 flex flex-col h-full z-0 lg:overflow-y-auto">
+            <div class="p-6 flex flex-col gap-8">
+                
+                <!-- PDF Link Input Area -->
+                <section>
+                    <h2 class="text-sm font-semibold text-slate-900 mb-3 uppercase tracking-wider">1. Link do PDF</h2>
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+                        <p class="text-xs text-blue-800 leading-relaxed">
+                            <strong>Nota:</strong> Como esta ferramenta roda 100% local e offline no seu PC, você precisa hospedar o PDF em algum lugar (Google Drive, Dropbox, Site) e colar o <strong>Link Público</strong> abaixo.
+                        </p>
+                    </div>
+                    <div>
+                        <input type="url" id="pdf-url-input" placeholder="Ex: https://seusite.com/arquivo.pdf" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-3 outline-none transition-colors mb-3">
+                        <button id="generate-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-xl transition-all shadow-sm">
+                            Gerar QR Code
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Customization Options -->
+                <section class="opacity-50 pointer-events-none transition-opacity" id="customization-section">
+                    <h2 class="text-sm font-semibold text-slate-900 mb-3 uppercase tracking-wider">2. Personalização</h2>
+                    
+                    <div class="space-y-5">
+                        <!-- Logo Upload -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Adicionar Logo (Opcional)</label>
+                            <div class="flex items-center gap-3">
+                                <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors border border-slate-200">
+                                    Escolher Imagem
+                                    <input type="file" id="logo-input" accept="image/*" class="hidden">
+                                </label>
+                                <span id="logo-name" class="text-sm text-slate-500 truncate w-32">Nenhuma logo</span>
+                                <button id="remove-logo" class="hidden text-red-500 hover:text-red-700 text-sm font-medium">Remover</button>
+                            </div>
+                        </div>
+
+                        <!-- Colors -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cor do QR Code</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" id="qr-color" value="#000000" class="h-8 w-8 rounded cursor-pointer border-0 p-0">
+                                    <span class="text-sm text-slate-600 uppercase" id="qr-color-hex">#000000</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cor de Fundo</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" id="bg-color" value="#ffffff" class="h-8 w-8 rounded cursor-pointer border-0 p-0">
+                                    <span class="text-sm text-slate-600 uppercase" id="bg-color-hex">#FFFFFF</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Style -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Estilo dos Pontos</label>
+                            <select id="dots-style" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 outline-none">
+                                <option value="square">Quadrado</option>
+                                <option value="rounded" selected>Arredondado</option>
+                                <option value="dots">Pontilhado</option>
+                                <option value="classy">Elegante</option>
+                                <option value="extra-rounded">Extra Arredondado</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Middle Panel: Preview Area -->
+        <div class="w-full lg:w-1/3 bg-slate-50 flex flex-col justify-center items-center p-8 relative">
+            <div id="preview-placeholder" class="text-center flex flex-col items-center justify-center opacity-100 transition-opacity duration-300">
+                <div class="w-64 h-64 border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center bg-white shadow-sm mb-4">
+                    <svg class="w-16 h-16 text-slate-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                    </svg>
+                </div>
+                <p class="text-slate-500 font-medium">Insira o link para gerar</p>
+            </div>
+
+            <div id="qr-result-area" class="hidden flex-col items-center w-full max-w-sm">
+                <!-- Wrapper for saving with white background padding if needed -->
+                <div class="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 mb-6 w-full flex justify-center aspect-square" id="qr-canvas">
+                    <!-- QR Code injected here -->
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 w-full">
+                    <button id="download-png" class="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-xl transition-all shadow-sm hover:shadow-md">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                        PNG
+                    </button>
+                    <button id="download-svg" class="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 px-4 rounded-xl transition-all shadow-sm hover:shadow-md">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                        SVG
+                    </button>
+                </div>
+                <div class="mt-4 text-center">
+                    <a id="current-pdf-link" href="#" target="_blank" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium break-all underline decoration-indigo-300 underline-offset-4 hidden">Testar Link do QR Code</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: History -->
+        <div class="w-full lg:w-1/3 bg-white border-l border-slate-200 flex flex-col h-64 lg:h-full z-0">
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50/50">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Histórico Local
+                </h2>
+                <span id="history-count" class="text-xs bg-slate-200 text-slate-700 py-1 px-2 rounded-full font-semibold">0</span>
+            </div>
+            
+            <div id="history-list" class="flex-1 overflow-y-auto history-scroll p-4 space-y-3">
+                <!-- History Items go here -->
+                <div class="text-center text-slate-400 text-sm mt-10" id="empty-history">
+                    Nenhum QR Code gerado ainda.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification System -->
+    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col gap-2 z-50 pointer-events-none"></div>
+
+    <script type="module">
+        // Local State Variables
+        let currentPdfUrl = "";
+        let currentLogoDataUrl = null;
+        let qrCodeInstance = null;
+        let currentQrOptions = null;
+        
+        // DOM Elements
+        const pdfUrlInput = document.getElementById('pdf-url-input');
+        const generateBtn = document.getElementById('generate-btn');
+        
+        const customizationSection = document.getElementById('customization-section');
+        const logoInput = document.getElementById('logo-input');
+        const logoName = document.getElementById('logo-name');
+        const removeLogoBtn = document.getElementById('remove-logo');
+        const qrColorInput = document.getElementById('qr-color');
+        const bgColorInput = document.getElementById('bg-color');
+        const qrColorHex = document.getElementById('qr-color-hex');
+        const bgColorHex = document.getElementById('bg-color-hex');
+        const dotsStyleSelect = document.getElementById('dots-style');
+        
+        const previewPlaceholder = document.getElementById('preview-placeholder');
+        const qrResultArea = document.getElementById('qr-result-area');
+        const qrCanvas = document.getElementById('qr-canvas');
+        const currentPdfLink = document.getElementById('current-pdf-link');
+        const downloadPngBtn = document.getElementById('download-png');
+        const downloadSvgBtn = document.getElementById('download-svg');
+        
+        const historyList = document.getElementById('history-list');
+        const emptyHistory = document.getElementById('empty-history');
+        const historyCount = document.getElementById('history-count');
+
+        // Initialize Local History
+        loadHistory();
+
+        // --- UI & Event Listeners ---
+
+        generateBtn.addEventListener('click', () => {
+            const url = pdfUrlInput.value.trim();
+            if (!url) {
+                showToast("Por favor, insira um link válido.", "warning");
+                return;
+            }
+            
+            try {
+                new URL(url); // Valida formato básico da URL
+            } catch (e) {
+                showToast("O formato do link parece inválido. Comece com http:// ou https://", "warning");
+                return;
+            }
+
+            currentPdfUrl = url;
+            currentPdfLink.href = url;
+            currentPdfLink.classList.remove('hidden');
+            
+            // Enable Customization
+            customizationSection.classList.remove('opacity-50', 'pointer-events-none');
+            
+            // Show QR Area
+            previewPlaceholder.classList.add('hidden');
+            qrResultArea.classList.remove('hidden');
+            qrResultArea.classList.add('flex');
+            
+            // Generate QR
+            generateQRCode();
+            
+            // Save to Local History
+            saveToHistory(url);
+            showToast("QR Code gerado com sucesso!", "success");
+        });
+
+        // Customization Listeners
+        logoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showToast("Por favor, selecione uma imagem válida.", "error");
+                return;
+            }
+            
+            logoName.textContent = file.name;
+            removeLogoBtn.classList.remove('hidden');
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                currentLogoDataUrl = event.target.result;
+                if(currentPdfUrl) generateQRCode();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        removeLogoBtn.addEventListener('click', () => {
+            logoInput.value = "";
+            logoName.textContent = "Nenhuma logo";
+            removeLogoBtn.classList.add('hidden');
+            currentLogoDataUrl = null;
+            if(currentPdfUrl) generateQRCode();
+        });
+
+        qrColorInput.addEventListener('input', (e) => {
+            qrColorHex.textContent = e.target.value;
+            if(currentPdfUrl) generateQRCode();
+        });
+
+        bgColorInput.addEventListener('input', (e) => {
+            bgColorHex.textContent = e.target.value;
+            if(currentPdfUrl) generateQRCode();
+        });
+
+        dotsStyleSelect.addEventListener('change', () => {
+            if(currentPdfUrl) generateQRCode();
+        });
+
+        // Generate QR Code using library
+        function generateQRCode() {
+            if (!currentPdfUrl) return;
+
+            qrCanvas.innerHTML = ""; // Clear previous
+
+            currentQrOptions = {
+                width: 300, // Tamanho ideal para visualização na tela (evita cortes)
+                height: 300, // Tamanho ideal para visualização na tela
+                type: "svg", // SVG is crisper for rendering in DOM
+                data: currentPdfUrl,
+                margin: 10,
+                qrOptions: {
+                    typeNumber: 0,
+                    mode: "Byte",
+                    errorCorrectionLevel: "H" // High correction is good when logo is present
+                },
+                imageOptions: {
+                    hideBackgroundDots: true,
+                    imageSize: 0.4,
+                    margin: 5,
+                    crossOrigin: "anonymous",
+                },
+                dotsOptions: {
+                    color: qrColorInput.value,
+                    type: dotsStyleSelect.value
+                },
+                backgroundOptions: {
+                    color: bgColorInput.value,
+                },
+                cornersSquareOptions: {
+                    color: qrColorInput.value,
+                    type: dotsStyleSelect.value === 'square' ? 'square' : 'extra-rounded'
+                },
+                cornersDotOptions: {
+                    color: qrColorInput.value,
+                    type: dotsStyleSelect.value === 'square' ? 'square' : 'dot'
+                }
+            };
+
+            if (currentLogoDataUrl) {
+                currentQrOptions.image = currentLogoDataUrl;
+            }
+
+            qrCodeInstance = new QRCodeStyling(currentQrOptions);
+            qrCodeInstance.append(qrCanvas);
+        }
+
+        // Downloads
+        downloadPngBtn.addEventListener('click', () => {
+            if(currentQrOptions) {
+                // Cria uma nova instância de alta resolução (1024x1024) invisível apenas para o download!
+                const exportOptions = { ...currentQrOptions, width: 1024, height: 1024 };
+                const exportInstance = new QRCodeStyling(exportOptions);
+                exportInstance.download({ name: "meu-pdf-qr", extension: "png" });
+            }
+        });
+
+        downloadSvgBtn.addEventListener('click', () => {
+            if(currentQrOptions) {
+                // Cria uma nova instância de alta resolução (1024x1024) invisível apenas para o download!
+                const exportOptions = { ...currentQrOptions, width: 1024, height: 1024 };
+                const exportInstance = new QRCodeStyling(exportOptions);
+                exportInstance.download({ name: "meu-pdf-qr", extension: "svg" });
+            }
+        });
+
+        // --- LocalStorage History ---
+        
+        function getHistoryData() {
+            const data = localStorage.getItem('local_qr_history');
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveToHistory(url) {
+            try {
+                let items = getHistoryData();
+                const newItem = {
+                    id: Date.now().toString(),
+                    url: url,
+                    createdAt: new Date().getTime(),
+                    settings: {
+                        color: qrColorInput.value,
+                        bg: bgColorInput.value,
+                        style: dotsStyleSelect.value,
+                        hasLogo: !!currentLogoDataUrl
+                    }
+                };
+                
+                // Avoid direct duplicates in a row
+                if(items.length > 0 && items[0].url === url) return;
+                
+                items.unshift(newItem); // add to top
+                if(items.length > 50) items.pop(); // limit history size to 50 items
+                
+                localStorage.setItem('local_qr_history', JSON.stringify(items));
+                loadHistory();
+            } catch (error) {
+                console.error("Error saving history", error);
+            }
+        }
+
+        function loadHistory() {
+            const items = getHistoryData();
+            renderHistory(items);
+        }
+
+        function deleteHistoryItem(id) {
+            let items = getHistoryData();
+            items = items.filter(item => item.id !== id);
+            localStorage.setItem('local_qr_history', JSON.stringify(items));
+            loadHistory();
+            showToast("Item removido do histórico", "success");
+        }
+
+        function renderHistory(items) {
+            historyList.innerHTML = '';
+            historyCount.textContent = items.length;
+            
+            if (items.length === 0) {
+                emptyHistory.classList.remove('hidden');
+                historyList.appendChild(emptyHistory);
+                return;
+            }
+            
+            emptyHistory.classList.add('hidden');
+            
+            items.forEach(item => {
+                const date = new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                
+                // Display domain or short url instead of big string
+                let displayUrl = item.url;
+                try {
+                    const urlObj = new URL(item.url);
+                    displayUrl = urlObj.hostname + (urlObj.pathname.length > 15 ? urlObj.pathname.substring(0, 15) + '...' : urlObj.pathname);
+                } catch(e) {}
+
+                const div = document.createElement('div');
+                div.className = 'bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group flex flex-col gap-2 relative';
+                
+                div.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <div class="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg shrink-0">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-slate-800 truncate" title="${item.url}">${displayUrl}</p>
+                                <p class="text-xs text-slate-500">${date}</p>
+                            </div>
+                        </div>
+                        <button class="text-slate-400 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100 delete-btn" data-id="${item.id}" title="Excluir">
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                        </button>
+                    </div>
+                    <div class="flex gap-2 mt-1">
+                        <button class="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 py-1.5 px-3 rounded-lg flex-1 font-medium transition-colors select-btn" data-url="${item.url}">
+                            Gerar de Novo
+                        </button>
+                        <a href="${item.url}" target="_blank" class="text-xs bg-slate-100 text-slate-700 hover:bg-slate-200 py-1.5 px-3 rounded-lg font-medium transition-colors text-center">
+                            Testar Link
+                        </a>
+                    </div>
+                `;
+                
+                historyList.appendChild(div);
+            });
+
+            // Bind events for history buttons
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    deleteHistoryItem(id);
+                });
+            });
+
+            document.querySelectorAll('.select-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const url = e.currentTarget.getAttribute('data-url');
+                    
+                    pdfUrlInput.value = url;
+                    currentPdfUrl = url;
+                    currentPdfLink.href = url;
+                    currentPdfLink.classList.remove('hidden');
+                    
+                    customizationSection.classList.remove('opacity-50', 'pointer-events-none');
+                    previewPlaceholder.classList.add('hidden');
+                    qrResultArea.classList.remove('hidden');
+                    qrResultArea.classList.add('flex');
+                    
+                    generateQRCode();
+                    
+                    // On mobile, scroll to top
+                    if(window.innerWidth < 1024) {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                    
+                    showToast(`Visualizando QR Code carregado`, "success");
+                });
+            });
+        }
+
+        // Custom Toast system
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = "bg-slate-800";
+            if(type === "error") bgClass = "bg-red-600";
+            if(type === "success") bgClass = "bg-emerald-600";
+            if(type === "warning") bgClass = "bg-amber-500";
+
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-lg text-sm font-medium transform transition-all duration-300 translate-y-10 opacity-0 flex items-center gap-2 pointer-events-auto`;
+            
+            toast.innerHTML = `<span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            });
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    if(toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
